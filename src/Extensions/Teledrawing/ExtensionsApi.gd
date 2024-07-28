@@ -1,119 +1,173 @@
-# gdlint: ignore=max-public-methods
 extends Node
+# NOTE: Goto File-->Save then type "ExtensionsApi" in "Search Help" to read the
+# curated documentation of the Api.
+# If it still doesn't show try again after doing Project-->Reload current project
 
-# use these variables in your extension to access the api
+## This Api gives you the essentials to develop a working extension for Pixelorama.[br]
+## The Api consists of many smaller Apis, each giving access to different areas of the Software.
+## [br][br]
+## Keep in mind that this API is targeted towards users who are not fully familiar with Pixelorama's
+## source code. If you need to do something more complicated and more low-level, you would need to
+## interact directly with the source code.
+## [br][br]
+## To access this anywhere in the extension use [code]get_node_or_null("/root/ExtensionsApi")[/code]
+##
+## @tutorial(Add Tutorial here):            https://the/tutorial1/url.com
+
+## Gives access to the general, app related functions of pixelorama
+## such as Autoloads, Software Version, Config file etc...
 var general := GeneralAPI.new()
-var menu := MenuAPI.new()
-var dialog := DialogAPI.new()
-var panel := PanelAPI.new()
-var theme := ThemeAPI.new()
-var tools := ToolAPI.new()
-var project := ProjectAPI.new()
-var signals := SignalsAPI.new()
+var menu := MenuAPI.new()  ## Gives ability to add/remove items from menus in the top bar.
+var dialog := DialogAPI.new()  ## Gives access to Dialog related functions.
+var panel := PanelAPI.new()  ## Gives access to Tabs and Dockable Container related functions.
+var theme := ThemeAPI.new()  ## Gives access to theme related functions.
+var tools := ToolAPI.new()  ## Gives ability to add/remove tools.
+var selection := SelectionAPI.new()  ## Gives access to pixelorama's selection system.
+var project := ProjectAPI.new()  ## Gives access to project manipulation.
+var export := ExportAPI.new()  ## Gives access to adding custom exporters.
+var import := ImportAPI.new()  ## Gives access to adding custom import options.
+var palette := PaletteAPI.new()  ## Gives access to palettes.
+var signals := SignalsAPI.new()  ## Gives access to the basic commonly used signals.
 
 
-# The Api Methods Start Here
+# The API Methods Start Here
+## Returns the version of the ExtensionsApi.
 func get_api_version() -> int:
-	# Returns the api version of pixelorama
-	return 2
+	return 4
 
 
+## Returns the initial nodes of an extension named [param extension_name].
+## initial nodes are the nodes whose paths are in the [code]nodes[/code] key of an
+## extension.json file.
+func get_main_nodes(extension_name: StringName) -> Array[Node]:
+	return []
+
+
+## Gives Access to the general stuff.
+##
+## This part of Api provides stuff like commonly used Autoloads, App's version info etc
+## the most basic (but important) stuff.
 class GeneralAPI:
-	# Version And Config
+	## Returns the current version of pixelorama.
 	func get_pixelorama_version() -> String:
-		# Returns the version of pixelorama
-		return "0.11.0"
+		return "v1.0-stable"
 
+	## Returns the [ConfigFile] contains all the settings (Brushes, sizes, preferences, etc...).
 	func get_config_file() -> ConfigFile:
-		# config_file contains all the settings (Brushes, sizes, preferences, etc...)
-		return ConfigFile.new()
+		return
 
-	# Nodes
+	## Returns the Global autoload used by Pixelorama.[br]
+	## Contains references to almost all UI Elements, Variables that indicate different
+	## settings etc..., In short it is the most important autoload of Pixelorama.
 	func get_global():
-		# Returns the Global autoload used by pixelorama
-		pass
+		return
 
+	## Returns the DrawingAlgos autoload, contains different drawing algorithms used by Pixelorama.
+	func get_drawing_algos():
+		return
+
+	## Returns parent of the nodes listed in extension.json -> "nodes".
 	func get_extensions_node() -> Node:
-		# Returns the Extensions Node (the parent of the extension's Main.tscn)
-		return Node.new()
+		return
 
+	## Returns the main [code]Canvas[/code] node,
+	## normally used to add a custom preview to the canvas.
 	func get_canvas():
-		# Returns the canvas
-		pass
+		return
 
 
+## Gives ability to add/remove items from menus in the top bar.
 class MenuAPI:
-	enum { FILE, EDIT, SELECT, IMAGE, VIEW, WINDOW, HELP }
+	enum { FILE, EDIT, SELECT, IMAGE, EFFECTS, VIEW, WINDOW, HELP }
 
+	## Adds a menu item of title [param item_name] to the [param menu_type] defined by
+	## [enum @unnamed_enums].
+	## [br][param item_metadata] is usually a window node you want to appear when you click the
+	## [param item_name]. That window node should also have a [param menu_item_clicked]
+	## function inside its script.[br]
+	## Index of the added item is returned (which can be used to remove menu item later on).
 	func add_menu_item(menu_type: int, item_name: String, item_metadata, item_id := -1) -> int:
-		# item_metadata is usually a popup node you want to appear when you click the item_name
-		# that popup should also have an (menu_item_clicked) function inside it's script
-		# "item_idx" of the added entry is returned
 		return 0
 
+	## Removes a menu item at index [param item_idx] from the [param menu_type] defined by
+	## [enum @unnamed_enums].
 	func remove_menu_item(menu_type: int, item_idx: int) -> void:
-		# removes an entry at "item_idx" from the menu_type (FILE, EDIT, SELECT, IMAGE, VIEW, WINDOW, HELP)
-		pass
+		return
 
 
+## Gives access to common dialog related functions.
 class DialogAPI:
+	## Shows an alert dialog with the given [param text].
+	## Useful for displaying messages like "Incompatible API" etc...
 	func show_error(text: String) -> void:
-		# shows an alert dialog with the given "text"
-		# useful for displaying messages like "Incompatible API" etc...
-		pass
+		return
 
+	## Returns the node that is the parent of dialogs used in pixelorama.
 	func get_dialogs_parent_node() -> Node:
-		# returns the node that is the parent of the dialog used in pixelorama
-		return Node.new()
+		return
 
+	## Tells pixelorama that some dialog is about to open or close.
 	func dialog_open(open: bool) -> void:
-		# Tell pixelorama that a dialog is being opened
-		pass
+		return
 
 
+## Gives access to Tabs and Dockable Container related functions.
 class PanelAPI:
-	func set_tabs_visible(visible: bool) -> void:
-		# sets the visibility of tabs
-		pass
+	## Sets the visibility of dockable tabs.
+	var tabs_visible: bool:
+		set(value):
+			pass
+		get:
+			return false
 
-	func get_tabs_visible() -> bool:
-		# get the visibility of tabs
-		return false
-
+	## Adds the [param node] as a tab. Initially it's placed on the same panel as the tools tab,
+	## but can be changed through adding custom layouts.
 	func add_node_as_tab(node: Node) -> void:
-		# Adds a "node" as a tab
-		pass
+		return
 
+	## Removes the [param node] from the DockableContainer.
 	func remove_node_from_tab(node: Node) -> void:
-		# Removes the "node" from the DockableContainer
-		pass
+		return
 
 
+## Gives access to theme related functions.
 class ThemeAPI:
+	## Adds the [param theme] to [code]Edit -> Preferences -> Interface -> Themes[/code].
 	func add_theme(theme: Theme) -> void:
-		# Adds a theme
-		pass
+		return
 
+	## Returns index of the [param theme] in preferences.
 	func find_theme_index(theme: Theme) -> int:
-		# Returns index of a theme in preferences
 		return 0
 
+	## Returns the current theme resource.
 	func get_theme() -> Theme:
-		# Returns the current theme
-		return Theme.new()
+		return
 
+	## Sets a theme located at a given [param idx] in preferences. If theme set successfully then
+	## return [code]true[/code], else [code]false[/code].
 	func set_theme(idx: int) -> bool:
-		# Sets a theme located at a given "idx" in preferences
-		# If theme set successfully then return true, else false
 		return false
 
+	## Remove the [param theme] from preferences.
 	func remove_theme(theme: Theme) -> void:
-		# Remove a theme from preferences
-		pass
+		return
 
 
+## Gives ability to add/remove tools.
 class ToolAPI:
-	# Tool methods
+	# gdlint: ignore=constant-name
+	enum LayerTypes { PIXEL, GROUP, THREE_D }
+
+	## Adds a tool to pixelorama with name [param tool_name] (without spaces),
+	## display name [param display_name], tool scene [param scene], layers that the tool works
+	## on [param layer_types] defined by [constant LayerTypes],
+	## [param extra_hint] (text that appears when mouse havers tool icon), primary shortcut
+	## name [param shortcut] and any extra shortcuts [param extra_shortcuts].
+	## [br][br]At the moment extensions can't make their own shortcuts so you can ignore
+	## [param shortcut] and [param extra_shortcuts].
+	## [br] to determine the position of tool in tool list, use [param insert_point]
+	## (if you leave it empty then the added tool will be placed at bottom)
 	func add_tool(
 		tool_name: String,
 		display_name: String,
@@ -124,34 +178,237 @@ class ToolAPI:
 		extra_shortcuts: PackedStringArray = [],
 		insert_point := -1
 	) -> void:
-		# Adds a tool with the above detail
-		pass
+		return
 
+	## Removes a tool with name [param tool_name]
+	## and assign Pencil as left tool, Eraser as right tool.
 	func remove_tool(tool_name: String) -> void:
-		# Removes a tool with name "tool_name"
-		# and assign Pencil as left tool, Eraser as right tool
-		pass
+		return
 
 
+## Gives access to pixelorama's selection system.
+class SelectionAPI:
+	## Clears the selection.
+	func clear_selection() -> void:
+		return
+
+	## Select the entire region of current cel.
+	func select_all() -> void:
+		return
+
+	## Selects a portion defined by [param rect] of the current cel.
+	## [param operation] influences it's behaviour with previous selection rects
+	## (0 for adding, 1 for subtracting, 2 for intersection).
+	func select_rect(rect: Rect2i, operation := 0) -> void:
+		return
+
+	## Moves a selection to [param destination],
+	## with content if [param with_content] is [code]true[/code].
+	## If [param transform_standby] is [code]true[/code] then the transformation will not be
+	## applied immediatelyunless [kbd]Enter[/kbd] is pressed.
+	func move_selection(
+		destination: Vector2i, with_content := true, transform_standby := false
+	) -> void:
+		return
+
+	## Resizes the selection to [param new_size],
+	## with content if [param with_content] is [code]true[/code].
+	## If [param transform_standby] is [code]true[/code] then the transformation will not be
+	## applied immediately unless [kbd]Enter[/kbd] is pressed.
+	func resize_selection(
+		new_size: Vector2i, with_content := true, transform_standby := false
+	) -> void:
+		return
+
+	## Inverts the selection.
+	func invert() -> void:
+		return
+
+	## Makes a project brush out of the current selection's content.
+	func make_brush() -> void:
+		return
+
+	## Returns the portion of current cel's image enclosed by the selection.
+	## It's similar to [method make_brush] but it returns the image instead.
+	func get_enclosed_image() -> Image:
+		return
+
+	## Copies the selection content (works in or between pixelorama instances only).
+	func copy() -> void:
+		return
+
+	## Pastes the selection content.
+	func paste(in_place := false) -> void:
+		return
+
+	## Deletes the drawing on current cel enclosed within the selection's area.
+	func delete_content(selected_cels := true) -> void:
+		return
+
+
+## Gives access to basic project manipulation functions.
 class ProjectAPI:
-	var current_project
+	## The project currently in focus
+	var current_project:
+		set(value):
+			pass
+		get:
+			return
 
-	func get_current_cel_info() -> Dictionary:
-		# As there are more than one types of cel in Pixelorama,
-		# An extension may try to use a GroupCel as a PixelCel (if it doesn't know the difference)
-		# So it's encouraged to use this function to access cels
+	## Creates a new project in a new tab with one starting layer and frame,
+	## name [param name], size [param size], fill color [param fill_color] and
+	## frames [param frames]. The created project also gets returned.[br][br]
+	## [param frames] is an [Array] of type [Frame]. Usually it can be left as [code][][/code].
+	func new_project(
+		frames: Array = [],
+		name := tr("untitled"),
+		size := Vector2(64, 64),
+		fill_color := Color.TRANSPARENT
+	):
+		return
 
-		# type can be "GroupCel", "PixelCel", "Cel3D", and "BaseCel"
-		return {"cel": null, "type": ""}
+	## Creates and returns a new [Project] in a new tab, with an optional [param name].
+	## Unlike [method new_project], no starting frame/layer gets created.
+	## Useful if you want to deserialize project data.
+	func new_empty_project(name := tr("untitled")):
+		return
 
-	func get_cel_info_at(project, frame: int, layer: int) -> Dictionary:
-		# frames from left to right, layers from bottom to top
-		# frames/layers start at "0"
-		# and end at (project.frames.size() - 1) and (project.layers.size() - 1) respectively
-		return {"cel": null, "type": ""}
+	## Returns a dictionary containing all the project information.
+	func get_project_info(project) -> Dictionary:
+		return {}
+
+	## Selects the cels and makes the last entry of [param selected_array] as the current cel
+	## [param selected_array] is an [Array] of [Arrays] of 2 integers (frame & layer).[br]
+	## Frames are counted from left to right, layers are counted from bottom to top.
+	## Frames/layers start at "0" and end at [param project.frames.size() - 1] and
+	## [param project.layers.size() - 1] respectively.
+	func select_cels(selected_array := [[0, 0]]) -> void:
+		return
+
+	## Returns the current cel.
+	## Cel type can be checked using function [method get_class_name] inside the cel
+	## type can be GroupCel, PixelCel, Cel3D, or BaseCel.
+	func get_current_cel():
+		return
+
+	## Frames are counted from left to right, layers are counted from bottom to top.
+	## Frames/layers start at "0" and end at [param project.frames.size() - 1] and
+	## [param project.layers.size() - 1] respectively.
+	func get_cel_at(project, frame: int, layer: int):
+		return
+
+	## Sets an [param image] at [param frame] and [param layer] on the current project.
+	## Frames are counted from left to right, layers are counted from bottom to top.
+	func set_pixelcel_image(image: Image, frame: int, layer: int) -> void:
+		return
+
+	## Adds a new frame in the current project after frame [param after_frame].
+	func add_new_frame(after_frame: int) -> void:
+		print("invalid (after_frame)")
+		return
 
 
+	## Adds a new Layer of name [param name] in the current project above layer [param above_layer]
+	## ([param above_layer] = 0 is the bottom-most layer and so on).
+	## [br][param type] = 0 --> PixelLayer,
+	## [br][param type] = 1 --> GroupLayer,
+	## [br][param type] = 2 --> 3DLayer
+	func add_new_layer(above_layer: int, name := "", type := 0) -> void:
+		print("invalid (type)")
+		print("invalid (above_layer)")
+		return
+
+
+## Gives access to adding custom exporters.
+class ExportAPI:
+	# gdlint: ignore=constant-name
+	enum ExportTab { IMAGE = 0, SPRITESHEET = 1}
+
+	## [param format_info] has keys: [code]extension[/code] and [code]description[/code]
+	## whose values are of type [String] e.g:[codeblock]
+	## format_info = {"extension": ".gif", "description": "GIF Image"}
+	## [/codeblock]
+	## [param exporter_generator] is a node with a script containing the method
+	## [method override_export] which takes 1 argument of type Dictionary which is automatically
+	## passed to [method override_export] at time of export and contains
+	## keys: [code]processed_images[/code], [code]export_dialog[/code],
+	## [code]export_paths[/code], [code]project[/code][br]
+	## (Note: [code]processed_images[/code] is an array of ProcessedImage resource which further
+	## has parameters [param image] and [param duration])[br]
+	## If the value of [param tab] is not in [constant ExportTab] then the format will be added to
+	## both tabs. Returns the index of exporter, which can be used to remove exporter later.
+	func add_export_option(
+		format_info: Dictionary,
+		exporter_generator: Object,
+		tab := ExportTab.IMAGE,
+		is_animated := true
+	) -> int:
+		return 0
+
+	## Removes the exporter with [param id] from Pixelorama.
+	func remove_export_option(id: int) -> void:
+		return
+
+
+## Gives access to adding custom import options.
+class ImportAPI:
+	## [param import_scene] is a scene preload that will be instanced and added to "import options"
+	## section of pixelorama's import dialogs and will appears whenever [param import_name] is
+	## chosen from import menu.
+	## [br]
+	## [param import_scene] must have a a script containing:[br]
+	## 1. An optional variable named [code]import_preview_dialog[/code] of type [ConfirmationDialog],
+	## If present, it will automatically be assigned a reference to the relevant import dialog's
+	## [code]ImportPreviewDialog[/code] class so that you can easily access variables and
+	## methods of that class. (This variable is meant to be read-only)[br]
+	## 2. The method [method initiate_import] which takes 2 arguments: [code]path[/code],
+	## [code]image[/code], which are automatically passed to [method initiate_import] at
+	## time of import.
+	func add_import_option(import_name: StringName, import_scene_preload: PackedScene) -> int:
+		return 0
+
+	## Removes the import option with [param id] from Pixelorama.
+	func remove_import_option(id: int) -> void:
+		return
+
+
+## Gives access to palettes.
+class PaletteAPI:
+	## Creates and adds a new [Palette] with name [param palette_name] with [param data]
+	## in the form of a [Dictionary].
+	## An example of [code]data[/code] dictionary will be:[codeblock]
+	## {
+	## "colors": [
+	##  {
+	##   "color": "(0, 0, 0, 1)",
+	##   "index": 0
+	##  },
+	##  {
+	##   "color": "(0.1294, 0.1216, 0.2039, 1)",
+	##   "index": 1
+	##  },
+	##  {
+	##   "color": "(0.2667, 0.1569, 0.2314, 1)",
+	##   "index": 2
+	##  }
+	## ],
+	## "comment": "Place comment here",
+	## "height": 4,
+	## "width": 8
+	## }
+	## [/codeblock]
+	func create_palette_from_data(palette_name: String, data: Dictionary) -> void:
+		return
+
+
+## Gives access to the basic commonly used signals.
+##
+## Gives access to the basic commonly used signals.
+## Some less common signals are not mentioned in Api but could be accessed through source directly.
 class SignalsAPI:
+	# APP RELATED SIGNALS
+	## Connects/disconnects a signal to [param callable], that emits
+	## when pixelorama is just opened.
 	func signal_pixelorama_opened(callable: Callable, is_disconnecting := false) -> void:
 		return
 
