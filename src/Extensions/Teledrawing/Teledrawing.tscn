@@ -61,6 +61,7 @@ layout_mode = 2
 size_flags_vertical = 3
 
 [node name="BroadcastTimer" type="Timer" parent="."]
+wait_time = 5.0
 
 [node name="ListenerTimer" type="Timer" parent="."]
 wait_time = 0.5

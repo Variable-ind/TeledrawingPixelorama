@@ -2,6 +2,8 @@ extends AcceptDialog
 
 enum { CREATE, JOIN }
 
+var OnlineProject = preload("res://src/Extensions/Teledrawing/OnlineProject.gd")
+var OnlinePixelCel = preload("res://src/Extensions/Teledrawing/OnlinePixelCel.gd")
 var menu_item_index: int
 var port := 18819
 var ip := "::1"
@@ -15,7 +17,8 @@ var online_project: RefCounted:
 		online_project = value
 		if not is_instance_valid(value):
 			return
-		online_project.timeline_updated.connect(timeline_updated)
+		if not online_project.timeline_updated.is_connected(timeline_updated):
+			online_project.timeline_updated.connect(timeline_updated)
 
 var broadcaster: PacketPeerUDP
 var listener := PacketPeerUDP.new()
@@ -116,7 +119,9 @@ func new_user_connected(peer_id: int) -> void:
 ## Called from the server to clients when they connect
 @rpc("authority", "call_remote", "reliable")
 func receive_new_project(project_data: Dictionary, images_data: Array) -> void:
-	online_project = ExtensionsApi.project.new_empty_project()
+	var new_proj = OnlineProject.new([], name)
+	ExtensionsApi.general.get_global().projects.append(new_proj)
+	online_project = new_proj
 	online_project.deserialize(project_data)
 	var image_index := 0
 	for frame in online_project.frames:
@@ -139,20 +144,34 @@ func project_data_changed(project: RefCounted) -> void:
 		return
 	var data := {}
 	var cels: Array = project.selected_cels
-	for cel_indices in cels:
-		var frame_index: int = cel_indices[0]
-		var layer_index: int = cel_indices[1]
-		var cel = project.frames[frame_index].cels[layer_index]
-		if cel.get_class_name() != "PixelCel":
-			continue
-		var image: Image = cel.image
-		data[cel_indices] = image.get_data()
-	receive_changes.rpc(data)
+	if online_project.undo_redo.get_current_action_name() == "Scale":  # If project got resized
+		for f in project.frames.size():
+			for l in project.frames[f].cels.size():
+				var cel_indices = [f, l]
+				var cel = project.frames[f].cels[l]
+				if cel.get_class_name() != "PixelCel":
+					continue
+				var image: Image = cel.image
+				data[cel_indices] = image.get_data()
+	else:
+		for cel_indices in cels:
+			var frame_index: int = cel_indices[0]
+			var layer_index: int = cel_indices[1]
+			var cel = project.frames[frame_index].cels[layer_index]
+			if cel.get_class_name() != "PixelCel":
+				continue
+			var image: Image = cel.image
+			data[cel_indices] = image.get_data()
+	receive_changes.rpc(data, project.size)
 
 
 ## Called on all connected users after any of the users change project data.
 @rpc("any_peer", "call_remote", "reliable")
-func receive_changes(data: Dictionary) -> void:
+func receive_changes(data: Dictionary, p_size: Vector2i) -> void:
+	if p_size != online_project.size:
+		ExtensionsApi.general.get_drawing_algos().resize_canvas(
+			p_size.x, p_size.y, 0, 0
+		)
 	for cel_indices in data:
 		var frame_index: int = cel_indices[0]
 		var layer_index: int = cel_indices[1]
@@ -210,6 +229,16 @@ func receive_updated_timeline(project_data: Dictionary, images_data: Array) -> v
 	online_project.change_project()
 
 
+func broadcast() -> void:
+	var room_info: Dictionary = {
+		"name": online_project.name,
+		"player_count": multiplayer.get_peers().size() + 1,
+		"port": port,
+	}
+	var data = JSON.stringify(room_info)
+	broadcaster.put_packet(data.to_ascii_buffer())
+
+
 ## Gets called when the "Create server" button is pressed.
 ## A new server is created on a specified port, with a maximum of 32 user capacity.
 ## The current project of the user who creates the server becomes the main focus.
@@ -224,9 +253,9 @@ func _on_create_server_pressed() -> void:
 	broadcaster.set_dest_address("255.255.255.255", listen_port)
 	var err = broadcaster.bind(broadcast_port)
 	if err == OK:
-		print("Successful Bound")
+		print("Successful bound of broadcaster")
 	else:
-		print("Bound Unsuccessful")
+		print("Bound unsuccessful for broadcaster")
 	broadcast_timer.start()
 	listener_timer.stop()
 	handle_connect()
@@ -260,13 +289,7 @@ func _on_visibility_changed() -> void:
 
 
 func _on_broadcast_timer_timeout() -> void:
-	var room_info: Dictionary = {
-		"name": online_project.name,
-		"player_count": multiplayer.get_peers().size() + 1,
-		"port": port,
-	}
-	var data = JSON.stringify(room_info)
-	broadcaster.put_packet(data.to_ascii_buffer())
+	broadcast()
 
 
 func _on_listener_timer_timeout() -> void:
