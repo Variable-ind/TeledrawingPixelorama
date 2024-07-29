@@ -8,7 +8,7 @@ var ip := "::1"
 
 ## The project that is currently selected when the user hosts a server,
 ## or the new project that gets created when the user connetcts to a server
-var online_project: RefCounted:
+var online_project: Project:
 	set(value):
 		if online_project == value:
 			return
@@ -17,12 +17,17 @@ var online_project: RefCounted:
 			return
 		if not online_project.timeline_updated.is_connected(timeline_updated):
 			online_project.timeline_updated.connect(timeline_updated)
+		if not online_project.undo_redo.version_changed.is_connected(check_preview_update):
+			online_project.undo_redo.version_changed.connect(check_preview_update)
+var remote_projects: Dictionary
+var merged_project: Project
 
 var broadcaster: PacketPeerUDP
 var listener := PacketPeerUDP.new()
 var listen_port: int = 8911
 var broadcast_port: int = 8912
 var available_servers: Dictionary
+var HeadlessProject = preload("res://src/Extensions/Teledrawing/HeadlessProject.gd")
 
 @onready var listener_timer: Timer = $ListenerTimer
 @onready var broadcast_timer: Timer = $BroadcastTimer
@@ -84,6 +89,47 @@ func handle_connect() -> void:
 	for child: Control in network_options.get_children():
 		child.visible = child == disconnect_button
 	ExtensionsApi.signals.signal_project_data_changed(project_data_changed)
+	ExtensionsApi.general.get_global().canvas.layers_redrawn.connect(override_preview)
+
+
+func override_preview() -> void:
+	var arr = remote_projects.keys()
+	arr.sort()
+	var first := true
+	var frame_index: int = online_project.current_frame
+	var layer_index: int = online_project.current_layer
+
+	# obtain our local image
+	var local_image :Image = online_project.frames[frame_index].cels[layer_index].image
+	var image_size := local_image.get_size()
+
+	var merged_preview: Image = merged_project.frames[frame_index].cels[layer_index].image
+
+	for uid in arr:
+		var remote_project = remote_projects[uid]
+		if frame_index >= remote_project.frames.size() or layer_index >= remote_project.layers.size():
+			return
+		var remote_cel = remote_project.frames[frame_index].cels[layer_index]
+		if remote_cel.get_class_name() != "PixelCel":
+			return
+
+		# get image data given by other users.
+		var remote_image: Image = remote_cel.image
+		if first:
+			first = false
+			merged_preview.set_data(
+				image_size.x, image_size.y, remote_image.has_mipmaps(), remote_image.get_format(), remote_image.get_data()
+			)
+		else:
+			merged_preview.blend_rect(remote_image, Rect2i(Vector2.ZERO, remote_image.get_size()), Vector2i.ZERO)
+	merged_preview.blend_rect(local_image, Rect2i(Vector2.ZERO, local_image.get_size()), Vector2i.ZERO)
+	ExtensionsApi.general.get_canvas().update_texture(layer_index, frame_index, merged_project)
+
+
+func check_preview_update():
+	if online_project.undo_redo:
+		if online_project.undo_redo.get_current_action_name() == "Draw":
+			override_preview()
 
 
 ## Called after user is disconnected.
@@ -130,8 +176,15 @@ func receive_new_project(project_data: Dictionary, images_data: Array) -> void:
 			)
 			cel.image_changed(image)
 			image_index += 1
+	merged_project = create_virtual_project()
 	ExtensionsApi.project.current_project = online_project
 	ExtensionsApi.general.get_canvas().camera_zoom()
+
+
+func create_virtual_project(based_on: Project = online_project) -> Project:
+	var virtual_project = HeadlessProject.new([], "", online_project.size)
+	virtual_project.clone_frames(online_project.frames, online_project.layers)
+	return virtual_project
 
 
 ## Called every time the project data changes
@@ -168,21 +221,29 @@ func receive_changes(data: Dictionary, p_size: Vector2i) -> void:
 		ExtensionsApi.general.get_drawing_algos().resize_canvas(
 			p_size.x, p_size.y, 0, 0
 		)
+	# make a pseudo project for sender's uid
+	var uid := multiplayer.get_remote_sender_id()
+	if not uid in remote_projects.keys():
+		remote_projects[uid] = create_virtual_project()
+	var preview_project = remote_projects[uid]
+
 	for cel_indices in data:
 		var frame_index: int = cel_indices[0]
 		var layer_index: int = cel_indices[1]
-		if frame_index >= online_project.frames.size() or layer_index >= online_project.layers.size():
+		if frame_index >= preview_project.frames.size() or layer_index >= preview_project.layers.size():
 			continue
-		var cel = online_project.frames[frame_index].cels[layer_index]
+		var cel = preview_project.frames[frame_index].cels[layer_index]
 		if cel.get_class_name() != "PixelCel":
 			continue
-		var image: Image = cel.image
-		var image_data: PackedByteArray = data[cel_indices]
-		var image_size := image.get_size()
-		image.set_data(
-			image_size.x, image_size.y, image.has_mipmaps(), image.get_format(), image_data
+
+		# process image data given by other users.
+		var old_image: Image = cel.image
+		var image_size := old_image.get_size()
+		var recieved_image_data: PackedByteArray = data[cel_indices]
+		old_image.set_data(
+			image_size.x, image_size.y, old_image.has_mipmaps(), old_image.get_format(), recieved_image_data
 		)
-		ExtensionsApi.general.get_canvas().update_texture(layer_index, frame_index, online_project)
+		override_preview()
 
 
 func timeline_updated() -> void:
@@ -198,6 +259,7 @@ func timeline_updated() -> void:
 
 @rpc("any_peer", "call_remote", "reliable")
 func receive_updated_timeline(project_data: Dictionary, images_data: Array) -> void:
+	var remote_project := create_virtual_project()
 	online_project.frames.clear()
 	online_project.layers.clear()
 	online_project.deserialize(project_data)
@@ -244,6 +306,7 @@ func _on_create_server_pressed() -> void:
 	if error == OK:
 		multiplayer.multiplayer_peer = server
 		online_project = ExtensionsApi.project.current_project
+		merged_project = create_virtual_project()
 
 		broadcaster = PacketPeerUDP.new()
 		broadcaster.set_broadcast_enabled(true)
