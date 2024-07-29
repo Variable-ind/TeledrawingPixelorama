@@ -2,8 +2,6 @@ extends AcceptDialog
 
 enum { CREATE, JOIN }
 
-var OnlineProject = preload("res://src/Extensions/Teledrawing/OnlineProject.gd")
-var OnlinePixelCel = preload("res://src/Extensions/Teledrawing/OnlinePixelCel.gd")
 var menu_item_index: int
 var port := 18819
 var ip := "::1"
@@ -119,9 +117,7 @@ func new_user_connected(peer_id: int) -> void:
 ## Called from the server to clients when they connect
 @rpc("authority", "call_remote", "reliable")
 func receive_new_project(project_data: Dictionary, images_data: Array) -> void:
-	var new_proj = OnlineProject.new([], name)
-	ExtensionsApi.general.get_global().projects.append(new_proj)
-	online_project = new_proj
+	online_project = ExtensionsApi.project.new_empty_project()
 	online_project.deserialize(project_data)
 	var image_index := 0
 	for frame in online_project.frames:
@@ -244,21 +240,22 @@ func broadcast() -> void:
 ## The current project of the user who creates the server becomes the main focus.
 func _on_create_server_pressed() -> void:
 	var server := ENetMultiplayerPeer.new()
-	server.create_server(port, 32)
-	multiplayer.multiplayer_peer = server
-	online_project = ExtensionsApi.project.current_project
+	var error = server.create_server(port, 32)
+	if error == OK:
+		multiplayer.multiplayer_peer = server
+		online_project = ExtensionsApi.project.current_project
 
-	broadcaster = PacketPeerUDP.new()
-	broadcaster.set_broadcast_enabled(true)
-	broadcaster.set_dest_address("255.255.255.255", listen_port)
-	var err = broadcaster.bind(broadcast_port)
-	if err == OK:
-		print("Successful bound of broadcaster")
-	else:
-		print("Bound unsuccessful for broadcaster")
-	broadcast_timer.start()
-	listener_timer.stop()
-	handle_connect()
+		broadcaster = PacketPeerUDP.new()
+		broadcaster.set_broadcast_enabled(true)
+		broadcaster.set_dest_address("255.255.255.255", listen_port)
+		var err = broadcaster.bind(broadcast_port)
+		if err == OK:
+			print("Successful bound of broadcaster")
+		else:
+			print("Bound unsuccessful for broadcaster")
+		broadcast_timer.start()
+		listener_timer.stop()
+		handle_connect()
 
 
 func _on_join_server_pressed() -> void:
