@@ -12,12 +12,8 @@ config_version=5
 
 config/name="TeledrawingPixelorama"
 run/main_scene="res://src/Extensions/Teledrawing/Teledrawing.tscn"
-config/features=PackedStringArray("4.2", "GL Compatibility")
+config/features=PackedStringArray("4.4", "GL Compatibility")
 config/icon="res://icon.svg"
-
-[autoload]
-
-ExtensionsApi="*res://src/Extensions/Teledrawing/ExtensionsApi.gd"
 
 [rendering]
 

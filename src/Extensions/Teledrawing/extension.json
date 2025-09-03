@@ -3,7 +3,7 @@
 	"display_name": "Teledrawing",
 	"description": "Collaborate with other artists online, by Orama Interactive.",
 	"author": "Orama Interactive",
-	"supported_api_versions": [ 4 ],
+	"supported_api_versions": [ 7 ],
 	"version": "0.1",
 	"license": "MIT",
 	"nodes": [
